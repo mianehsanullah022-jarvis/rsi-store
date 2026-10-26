@@ -282,7 +282,7 @@ body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
 @media(hover:hover){.card:hover .ph .alt{opacity:1}}
 
 /* 14. image zoom */
-.gal .main{cursor:zoom-in}
+.gal .main.zm{cursor:zoom-in}
 .zoom{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .zoom.on{opacity:1;pointer-events:auto}
 .zoom img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .3s;cursor:zoom-in;transform:scale(.92)}
@@ -306,6 +306,9 @@ body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
 .timeline div.on::before{animation:dotOn .35s var(--d,0s) both}
 @keyframes dotOn{from{background:var(--line);transform:scale(.6)}}
 
+.timeline.na .tl-fill,.timeline.na div.on::before{animation:none}
+.paused{background:#14161a;color:#fff;text-align:center;font-weight:600;font-size:14px;padding:9px 16px}
+.paused[hidden]{display:none}
 /* 17. whatsapp wiggle */
 .wa.wig{animation:wig .9s}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-14deg) scale(1.08)}30%{transform:rotate(12deg) scale(1.08)}45%{transform:rotate(-10deg)}60%{transform:rotate(8deg)}75%{transform:rotate(-4deg)}}
@@ -320,7 +323,7 @@ body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
     <a class="brand" href="#/" aria-label="RSI Accessories home"><img src="img/wordmark.webp" alt="RSI Accessories" width="210" height="89"></a>
     <nav class="hnav" aria-label="Main">
       <a href="#/" class="hide-s">Shop</a>
-      <a href="#/track">Track order</a>
+      <a href="#/track" id="navTrack">Track order</a>
       <button class="cartbtn" id="cartBtn" aria-label="Open cart">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6 5 3H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
         <span class="n" id="cartCount">0</span>
@@ -328,6 +331,7 @@ body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
     </nav>
   </div>
 </header>
+<div class="paused" id="paused" hidden>We're not taking new orders right now. Message us on WhatsApp.</div>
 
 <main id="app"></main>
 
@@ -336,7 +340,7 @@ body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
     <div class="fgrid">
       <div><img src="img/wordmark.webp" alt="RSI Accessories" width="104" height="44" loading="lazy">
         <div>Massagers, trimmers and trending gadgets, delivered all over Pakistan.</div></div>
-      <div><h4>Shop</h4><a href="#/">All products</a><a href="#/track">Track your order</a><a href="#/cart" id="fCart">Your cart</a></div>
+      <div><h4>Shop</h4><a href="#/">All products</a><a href="#/track" id="fTrack">Track your order</a><a href="#/cart" id="fCart">Your cart</a></div>
       <div><h4>Help</h4><a href="#" id="fWa" target="_blank" rel="noopener">WhatsApp us</a><a href="#/policy">Delivery & returns</a></div>
     </div>
     <div class="copy">© <span id="yr"></span> RSI Accessories</div>
@@ -372,7 +376,12 @@ const rs=n=>"Rs "+Number(n||0).toLocaleString("en-PK");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ls={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 
-let products=ls.get("rsi_products",[]), store=ls.get("rsi_store",{}), payments=ls.get("rsi_pay",{});
+let products=ls.get("rsi_products",[]), store=ls.get("rsi_store",{}), payments=ls.get("rsi_pay",{}), feat=ls.get("rsi_feat",{});
+/* feature switches from RSI OS → Settings. Missing = ON. */
+const on=k=>feat[k]!==false;
+const A=k=>!RM&&on("anim")&&on(k);
+const payOn=()=>Object.keys(PAYN).filter(k=>on("pay_"+k));
+const taking=()=>on("orders")&&payOn().length>0;
 let cart=ls.get("rsi_cart",[]), cat="All", loaded=products.length>0;
 
 async function api(path,opt={}){
@@ -387,10 +396,10 @@ async function load(){
       api("/rest/v1/products?select=id,slug,name,category,price,compare_price,stock,images,short,description,features,badge&active=eq.true&order=sort.asc"),
       api("/rest/v1/settings?select=key,value")
     ]);
-    const changed=!loaded||JSON.stringify(p)!==JSON.stringify(products)||JSON.stringify(s)!==JSON.stringify([{key:"store",value:store},{key:"payments",value:payments}]);
+    const changed=!loaded||JSON.stringify([p,s])!==JSON.stringify(ls.get("rsi_raw",null));ls.set("rsi_raw",[p,s]);
     products=p;ls.set("rsi_products",p);
-    for(const x of s){if(x.key==="store")store=x.value;if(x.key==="payments")payments=x.value}
-    ls.set("rsi_store",store);ls.set("rsi_pay",payments);
+    feat={};for(const x of s){if(x.key==="store")store=x.value;if(x.key==="payments")payments=x.value;if(x.key==="features")feat=x.value||{}}
+    ls.set("rsi_store",store);ls.set("rsi_pay",payments);ls.set("rsi_feat",feat);
     loaded=true;cart=cart.filter(c=>products.some(p=>p.id===c.id));saveCart(false);
     applyStore();if(changed)route();
     loadReviews();loadSales();
@@ -400,7 +409,9 @@ function waLink(text){const n=(store.whatsapp||"").replace(/\D/g,"").replace(/^0
 function applyStore(){
   ticker();
   const w=waLink("Hi RSI Accessories, I have a question.");
-  $("#waFloat").classList.toggle("on",!!w);$("#waFloat").href=w||"#";$("#fWa").href=w||"#/policy";
+  $("#waFloat").classList.toggle("on",!!w&&on("whatsapp"));
+  for(const id of ["navTrack","fTrack"])$("#"+id).style.display=on("track")?"":"none";
+  $("#paused").hidden=taking();$("#waFloat").href=w||"#";$("#fWa").href=w||"#/policy";
 }
 const P=id=>products.find(p=>p.id===id);
 const img=(p,i=0)=>(p.images&&p.images[i])||"img/logo.webp";
@@ -437,8 +448,8 @@ function renderCart(){
     <div class="price" style="font-size:15px">${rs(p.price*c.qty)}</div></div>`}).join("");
   const t=totals();
   const pct=t.free?Math.min(100,Math.round(t.sub/t.free*100)):0,full=pct>=100;
-  const left=t.free?`<div class="fmsg${full?" full":""}">${full?"🎉 You got FREE delivery!":`Add ${rs(t.free-t.sub)} more for FREE delivery`}</div>
-   <div class="fbar${full?" full":""}"><i id="fbi" style="width:${lastPct}%"></i></div>`:"";
+  const left=!t.free?"":!on("freebar")?(t.sub<t.free?`<div class="muted" style="margin-bottom:8px">Add ${rs(t.free-t.sub)} more for free delivery</div>`:""):`<div class="fmsg${full?" full":""}">${full?"🎉 You got FREE delivery!":`Add ${rs(t.free-t.sub)} more for FREE delivery`}</div>
+   <div class="fbar${full?" full":""}"><i id="fbi" style="width:${lastPct}%"></i></div>`;
   f.innerHTML=`${left}<div class="row"><span>Subtotal</span><b>${rs(t.sub)}</b></div>
    <div class="row muted"><span>Delivery</span><span>${t.fee?rs(t.fee):"Free"}</span></div>
    <div class="row big"><span>Total</span><span>${rs(t.total)}</span></div>
@@ -459,13 +470,13 @@ let heroPlayed=false;
 
 /* word rotator */
 const WORDS=["gifting","the gym","travel","everyday use"];
-function rotator(){const el=$("#rot");if(!el||RM)return;let i=0;
+function rotator(){const el=$("#rot");if(!el||!A("rotator"))return;let i=0;
   every(()=>{i=(i+1)%WORDS.length;el.classList.remove("sw");void el.offsetWidth;el.textContent=WORDS[i];el.classList.add("sw")},2400)}
 
 /* price roll: old price rolls down to new price */
 function roll(el,from,to,delay=0,ms=900){
   if(!el)return;
-  if(RM||!from||from<=to){el.textContent=rs(to);return}
+  if(!A("priceroll")||!from||from<=to){el.textContent=rs(to);return}
   el.textContent=rs(from);
   setTimeout(()=>{const t0=performance.now();
     const step=now=>{const k=Math.min(1,(now-t0)/ms),e=1-Math.pow(1-k,3);
@@ -475,15 +486,16 @@ function roll(el,from,to,delay=0,ms=900){
 
 /* click success */
 function okFlash(btn,label="✓ Added"){
-  if(!btn)return;btn.dataset.l=btn.dataset.l||btn.textContent;
+  if(!btn||!on("clickok")||!on("anim"))return;btn.dataset.l=btn.dataset.l||btn.textContent;
   btn.classList.remove("ok");void btn.offsetWidth;btn.classList.add("ok");btn.textContent=label;
   clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove("ok");btn.textContent=btn.dataset.l},1400);
 }
-function bumpCart(){const n=$("#cartCount");n.classList.remove("bump");void n.offsetWidth;n.classList.add("bump")}
+function bumpCart(){if(!on("clickok")||!on("anim"))return;const n=$("#cartCount");n.classList.remove("bump");void n.offsetWidth;n.classList.add("bump")}
 
 /* sale pings: real orders only (city + product, no names) */
 let sales=[],pingN=0;
 async function loadSales(){
+  if(!on("pings"))return;
   try{sales=await api("/rest/v1/rpc/recent_sales",{method:"POST",body:"{}"})||[]}catch{sales=[]}
   if(sales.length)setTimeout(nextPing,8000);
 }
@@ -492,7 +504,7 @@ function ago(t){const m=Math.round((Date.now()-new Date(t))/60000);
   const h=Math.round(m/60);if(h<24)return h+(h>1?" hours ago":" hour ago");
   const d=Math.round(h/24);return d+(d>1?" days ago":" day ago")}
 function nextPing(){
-  if(pingN>=Math.min(6,sales.length))return;
+  if(!on("pings")||pingN>=Math.min(6,sales.length))return;
   const h=location.hash,el=$("#ping");
   if(h.startsWith("#/checkout")||h.startsWith("#/done")||$("#drawer").classList.contains("on")){setTimeout(nextPing,15000);return}
   const s=sales[pingN++],p=products.find(x=>x.name===s.product);
@@ -509,7 +521,7 @@ async function loadReviews(){
   reviews.sort(()=>Math.random()-.5);mountReviews();
 }
 function mountReviews(){
-  const slot=$("#revSlot");if(!slot||!reviews.length)return;let i=0;
+  const slot=$("#revSlot");if(!slot||!reviews.length||!on("reviews"))return;let i=0;
   slot.innerHTML=`<section class="revs"><div class="wrap"><h2>What customers say</h2><div class="rcard" id="rc" aria-live="polite"></div>
     ${reviews.length>1?`<div class="rdots">${reviews.map((_,k)=>`<button aria-label="Review ${k+1}" data-k="${k}"></button>`).join("")}</div>`:""}</div></section>`;
   const show=(k,anim)=>{i=k;const r=reviews[k],p=r.product_id&&P(r.product_id),c=$("#rc");if(!c)return;
@@ -519,12 +531,12 @@ function mountReviews(){
     slot.querySelectorAll(".rdots button").forEach(b=>b.setAttribute("aria-current",String(+b.dataset.k===k)))};
   show(0,false);
   slot.querySelectorAll(".rdots button").forEach(b=>b.onclick=()=>show(+b.dataset.k,true));
-  if(reviews.length>1&&!RM)every(()=>show((i+1)%reviews.length,true),5000);
+  if(reviews.length>1&&A("reviews"))every(()=>show((i+1)%reviews.length,true),5000);
 }
 
 /* fly to cart */
 function flyToCart(src){
-  if(RM||!src||!src.getBoundingClientRect)return false;
+  if(!A("fly")||!src||!src.getBoundingClientRect)return false;
   const a=src.getBoundingClientRect(),b=$("#cartBtn").getBoundingClientRect();
   if(a.width<2||a.bottom<0||a.top>innerHeight)return false;
   const s=Math.min(a.width,a.height,140),f=document.createElement("img");
@@ -540,7 +552,7 @@ function flyToCart(src){
 /* cards fade in on scroll */
 let cardIO;
 function revealCards(){
-  if(RM||!("IntersectionObserver" in window))return;
+  if(!A("cardsfx")||!("IntersectionObserver" in window))return;
   cardIO&&cardIO.disconnect();
   cardIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");cardIO.unobserve(e.target)}}),{rootMargin:"0px 0px -40px 0px"});
   app.querySelectorAll(".card").forEach((c,i)=>{c.classList.add("fx");c.style.transitionDelay=(i%4)*70+"ms";cardIO.observe(c)});
@@ -561,7 +573,7 @@ function hideBar(){sbarIO&&sbarIO.disconnect();sbarIO=null;$("#sbar").classList.
 /* confetti */
 let justOrdered=false;
 function confetti(){
-  if(RM)return;const cols=["#e11d2e","#14161a","#0f8a4b","#f5a400","#ffffff"];
+  if(!A("confetti"))return;const cols=["#e11d2e","#14161a","#0f8a4b","#f5a400","#ffffff"];
   for(let i=0;i<60;i++){const c=document.createElement("i");c.className="cf";
     c.style.cssText=`left:${Math.random()*100}vw;background:${cols[i%5]};--x:${(Math.random()-.5)*160}px;--r:${(Math.random()*900-450)|0}deg;animation-duration:${1.8+Math.random()*1.6}s;animation-delay:${Math.random()*.4}s;${i%3?"":"border-radius:50%;height:8px"}`;
     document.body.appendChild(c);setTimeout(()=>c.remove(),4200)}
@@ -578,8 +590,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeZoom()});
 
 /* announcement ticker */
 function ticker(){
-  const el=$("#announce"),txt=store.announcement||"";el.classList.remove("tick");el.textContent=txt;
-  if(!txt||RM)return;
+  const el=$("#announce"),txt=on("announce")?store.announcement||"":"";el.classList.remove("tick");el.textContent=txt;
+  if(!txt||!A("ticker"))return;
   el.style.whiteSpace="nowrap";
   requestAnimationFrame(()=>{const fits=el.scrollWidth<=el.clientWidth+2;el.style.whiteSpace="";if(fits)return;
     el.classList.add("tick");el.innerHTML=`<div class="trk" style="--dur:${Math.max(12,txt.length*.28)}s"><span>${esc(txt)}</span><span aria-hidden="true">${esc(txt)}</span></div>`});
@@ -587,18 +599,18 @@ function ticker(){
 let lastW=innerWidth;addEventListener("resize",()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(ticker._t);ticker._t=setTimeout(ticker,300)});
 
 /* whatsapp wiggle: once after 10 seconds */
-setTimeout(()=>{const w=$("#waFloat");if(!RM&&w.classList.contains("on"))w.classList.add("wig")},10000);
+setTimeout(()=>{const w=$("#waFloat");if(A("wawiggle")&&w.classList.contains("on"))w.classList.add("wig")},10000);
 
 /* views */
 const HOVER=matchMedia("(hover:hover)").matches;
 function card(p){
   const out=p.stock<=0;
   return`<a class="card" href="#/p/${esc(p.slug)}">
-   <div class="ph"><img src="${esc(img(p))}" alt="${esc(p.name)}" loading="lazy" width="400" height="400">${HOVER&&p.images&&p.images[1]?`<img class="alt" src="${esc(p.images[1])}" alt="" loading="lazy" width="400" height="400">`:""}
+   <div class="ph"><img src="${esc(img(p))}" alt="${esc(p.name)}" loading="lazy" width="400" height="400">${HOVER&&A("hoverswap")&&p.images&&p.images[1]?`<img class="alt" src="${esc(p.images[1])}" alt="" loading="lazy" width="400" height="400">`:""}
    ${out?`<span class="badge out">Sold out</span>`:p.badge?`<span class="badge">${esc(p.badge)}</span>`:""}</div>
    <div class="bd"><h3>${esc(p.name)}</h3>
    <div class="price">${rs(p.price)}${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
-   ${!out&&p.stock<=5?`<div class="low">Only ${p.stock} left</div>`:""}
+   ${!out&&on("lowstock")&&p.stock<=5?`<div class="low">Only ${p.stock} left</div>`:""}
    <button class="add" ${out?"disabled":""} onclick="event.preventDefault();add('${p.id}',1,false,this)">${out?"Sold out":"Add to cart"}</button></div></a>`;
 }
 const trust=`<div class="trust">
@@ -610,10 +622,11 @@ function home(){
   document.title="RSI Accessories — Massagers, Trimmers & Trending Gadgets in Pakistan";
   if(!loaded){app.innerHTML=`<div class="wrap sec"><div class="grid">${'<div class="skel"></div>'.repeat(4)}</div></div>`;return}
   const f=products[0];
+  if(!on("chips"))cat="All";
   const cats=["All",...new Set(products.map(p=>p.category))];
   const list=products.filter(p=>cat==="All"||p.category===cat);
   clearTimers();
-  const play=!heroPlayed&&!RM;heroPlayed=true;
+  const play=!heroPlayed&&A("hero");heroPlayed=true;
   const was=f&&f.compare_price>f.price?f.compare_price:0;
   app.innerHTML=`${f?`<section class="hero${play?" play":""}"><div class="wrap hero-in">
     <a class="hero-img" href="#/p/${esc(f.slug)}"><img src="${esc(img(f))}" alt="${esc(f.name)}" width="1000" height="750" fetchpriority="high">${f.badge?`<span class="badge">${esc(f.badge)}</span>`:""}</a>
@@ -622,10 +635,10 @@ function home(){
       <div class="stripe rv"><span class="roll" id="heroPrice">${rs(play&&was?was:f.price)}</span>${was?`<s>${rs(was)}</s>`:""}</div>
       <div class="btns rv"><button class="btn red" onclick="add('${f.id}');">Buy now</button><a class="btn ghost" href="#/p/${esc(f.slug)}">See details</a></div>
     </div></div></section>`:""}
-    ${trust}
+    ${on("trust")?trust:""}
     <section class="sec"><div class="wrap">
       <h2>Shop all</h2><p class="sub">${products.length} products • Cash on Delivery available</p>
-      ${cats.length>2?`<div class="chips" role="group" aria-label="Categories">${cats.map(c=>`<button class="chip" aria-pressed="${c===cat}" onclick="cat='${esc(c)}';home()">${esc(c)}</button>`).join("")}</div>`:""}
+      ${on("chips")&&cats.length>2?`<div class="chips" role="group" aria-label="Categories">${cats.map(c=>`<button class="chip" aria-pressed="${c===cat}" onclick="cat='${esc(c)}';home()">${esc(c)}</button>`).join("")}</div>`:""}
       ${list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<div class="empty">No products here yet.</div>`}
     </div></section><div id="revSlot"></div>`;
   if(f&&play)roll($("#heroPrice"),was,f.price,700);
@@ -641,7 +654,7 @@ function product(slug){
    ${imgs.length>1?`<div class="thumbs">${imgs.map((u,i)=>`<button aria-label="Photo ${i+1}" aria-pressed="${i===0}" data-u="${esc(u)}"><img src="${esc(u)}" alt="" loading="lazy" width="72" height="72"></button>`).join("")}</div>`:""}</div>
    <div class="pinfo"><h1 class="pname">${esc(p.name)}</h1>
     <div class="price"><span class="roll" id="ppPrice">${rs(p.price)}</span>${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
-    <div class="stock ${out?"no":p.stock<=5?"low":"ok"}">${out?"Sold out — WhatsApp us to pre-order":p.stock<=5?`Only ${p.stock} left in stock`:"In stock, ready to ship"}</div>
+    <div class="stock ${out?"no":on("lowstock")&&p.stock<=5?"low":"ok"}">${out?"Sold out — WhatsApp us to pre-order":on("lowstock")&&p.stock<=5?`Only ${p.stock} left in stock`:"In stock, ready to ship"}</div>
     ${out?"":`<div class="qty"><button aria-label="Less" id="qm">−</button><output id="qv">1</output><button aria-label="More" id="qp">+</button></div>`}
     <div class="btns"><button class="btn red full" id="buy" ${out?"disabled":""}>Buy now — Cash on Delivery</button>
      <button class="btn ghost full" id="addc" ${out?"disabled":""}>Add to cart</button></div>
@@ -656,8 +669,8 @@ function product(slug){
     $("#addc").onclick=()=>add(p.id,q,false,$("#addc"));
   }
   if(p.compare_price>p.price)roll($("#ppPrice"),p.compare_price,p.price,250);
-  $(".gal .main").onclick=()=>openZoom($("#mainImg").src);
-  stickyBar(p);
+  if(on("zoom")){$(".gal .main").classList.add("zm");$(".gal .main").onclick=()=>openZoom($("#mainImg").src)}
+  if(on("sticky"))stickyBar(p);
   window.scrollTo(0,0);
 }
 const PAYN={cod:"Cash on Delivery",jazzcash:"JazzCash",easypaisa:"Easypaisa",bank:"Bank transfer"};
@@ -673,7 +686,8 @@ function checkout(){
   document.title="Checkout — RSI Accessories";
   if(!loaded){app.innerHTML="";return}
   if(!cart.length){app.innerHTML=`<div class="wrap sec"><div class="empty">Your cart is empty. <a href="#/">Shop products</a></div></div>`;return}
-  const t=totals();const saved=ls.get("rsi_cust",{});
+  if(!taking()){app.innerHTML=`<div class="wrap sec"><div class="empty">Sorry, we're not taking new orders right now.${waLink()?` <a href="${waLink("Hi RSI Accessories, I want to order.")}" target="_blank" rel="noopener">Message us on WhatsApp</a>`:""}</div></div>`;return}
+  const t=totals();const saved=ls.get("rsi_cust",{});const pays=payOn();
   app.innerHTML=`<div class="wrap co">
    <form class="box" id="cof" novalidate><h2>Delivery details</h2>
     <label for="nm">Full name</label><input id="nm" autocomplete="name" required value="${esc(saved.name)}">
@@ -683,8 +697,8 @@ function checkout(){
     <label for="ad">Full address</label><textarea id="ad" rows="2" autocomplete="street-address" placeholder="House no, street, area, landmark" required>${esc(saved.address)}</textarea>
     <label for="nt">Note (optional)</label><input id="nt" maxlength="300">
     <h3>Payment</h3>
-    <div class="pay" role="radiogroup">${Object.entries(PAYN).map(([k,v],i)=>`<label><input type="radio" name="pm" value="${k}" ${i===0?"checked":""}> ${v}</label>`).join("")}</div>
-    <div class="payinfo" id="pinfo">${payInfo("cod")}</div>
+    <div class="pay" role="radiogroup">${pays.map((k,i)=>`<label><input type="radio" name="pm" value="${k}" ${i===0?"checked":""}> ${PAYN[k]}</label>`).join("")}</div>
+    <div class="payinfo" id="pinfo">${payInfo(pays[0])}</div>
     <div class="err" id="err" role="alert"></div>
     <button class="btn red full" style="margin-top:16px" id="place">Place order — ${rs(t.total)}</button>
    </form>
@@ -723,7 +737,7 @@ function done(no){
    <p>Thank you! We'll call or WhatsApp you to confirm your order.${l.pm&&l.pm!=="cod"?" Please send your payment and share the transaction ID with us.":""}</p>
    <div class="btns" style="justify-content:center;margin-top:18px">
     ${w?`<a class="btn red" href="${w}" target="_blank" rel="noopener">Confirm on WhatsApp</a>`:""}
-    <a class="btn ghost" href="#/track">Track this order</a></div></div></div>`;
+    ${on("track")?`<a class="btn ghost" href="#/track">Track this order</a>`:""}</div></div></div>`;
   if(justOrdered){justOrdered=false;confetti()}
   window.scrollTo(0,0);
 }
@@ -747,7 +761,7 @@ function track(){
       if(!r)return $("#terr").textContent="No order found with that number and phone. Check both and try again.";
       const st=r.status==="packed"?"confirmed":r.status;const idx=STEPS.indexOf(st);
       $("#tres").innerHTML=`<h3 style="margin-top:22px">Order RSI-${r.order_no} — ${STN[r.status]}</h3>
-       ${idx>=0?`<div class="timeline"><span class="tl-bg"></span><span class="tl-fill" style="--w:${idx/3*75}%;--t:${idx*.35}s"></span>${STEPS.map((s,i)=>`<div class="${i<=idx?"on":""}" style="--d:${i*.35}s">${STN[s]}</div>`).join("")}</div>`:""}
+       ${idx>=0?`<div class="timeline${A("trackfill")?"":" na"}"><span class="tl-bg"></span><span class="tl-fill" style="--w:${idx/3*75}%;--t:${idx*.35}s"></span>${STEPS.map((s,i)=>`<div class="${i<=idx?"on":""}" style="--d:${i*.35}s">${STN[s]}</div>`).join("")}</div>`:""}
        ${r.tracking_no?`<p>Courier: <b>${esc(r.courier||"")}</b> — Tracking no: <b>${esc(r.tracking_no)}</b></p>`:""}
        <p class="muted">${(r.items||[]).map(i=>`${i.qty} × ${esc(i.name)}`).join("<br>")}<br>Total ${rs(r.total)} • Payment ${r.payment_status}</p>`;
     }catch(ex){$("#terr").textContent=ex.message}
@@ -765,7 +779,7 @@ function route(){
   if(a==="p")product(decodeURIComponent(b||""));
   else if(a==="checkout")checkout();
   else if(a==="done")done(b);
-  else if(a==="track")track();
+  else if(a==="track"&&on("track"))track();
   else if(a==="policy")policy();
   else if(a==="cart"){home();openCart()}
   else home();
