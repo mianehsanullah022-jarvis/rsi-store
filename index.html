@@ -241,6 +241,75 @@ footer img{height:44px;width:auto;margin-bottom:10px}
 .rdots button{width:10px;height:10px;border-radius:5px;border:0;background:var(--line);padding:0;cursor:pointer;transition:width .25s}
 .rdots button[aria-current=true]{width:26px;background:var(--red)}
 
+/* 7. fly to cart */
+.fly{position:fixed;z-index:70;border-radius:10px;object-fit:cover;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .7s cubic-bezier(.55,-.25,.75,.9),opacity .7s ease-in}
+
+/* 8. low stock pulse */
+.stock.low{color:var(--red);display:flex;align-items:center;gap:8px}
+.stock.low::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--red);animation:lowP 1.4s infinite}
+@keyframes lowP{0%{box-shadow:0 0 0 0 rgba(225,29,46,.55)}70%{box-shadow:0 0 0 9px rgba(225,29,46,0)}100%{box-shadow:0 0 0 0 rgba(225,29,46,0)}}
+.card .low{font-size:12.5px;font-weight:700;color:var(--red)}
+
+/* 9. sticky buy bar */
+.sbar{position:fixed;left:0;right:0;bottom:0;z-index:35;background:var(--white);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(0,0,0,.1);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:12px;align-items:center;transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.sbar.on{transform:none}
+.sbar img{width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none}
+.sbar .t{flex:1;min-width:0}.sbar .t b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbar .btn{min-height:46px;padding:10px 18px}
+body.sbar-on .wa{bottom:calc(84px + env(safe-area-inset-bottom))}
+body.sbar-on .ping{bottom:calc(84px + env(safe-area-inset-bottom))}
+.wa,.ping{transition:bottom .3s}
+
+/* 10. free delivery bar */
+.fbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:4px 0 12px}
+.fbar i{display:block;height:100%;background:var(--red);border-radius:4px;transition:width .6s cubic-bezier(.2,.7,.2,1),background .3s}
+.fbar.full i{background:var(--ok)}
+.fmsg{font-size:14px;font-weight:600}
+.fmsg.full{color:var(--ok)}
+
+/* 11. confetti */
+.cf{position:fixed;top:-12px;z-index:80;width:8px;height:14px;pointer-events:none;animation:cfall linear forwards}
+@keyframes cfall{to{transform:translate3d(var(--x),105vh,0) rotate(var(--r))}}
+.done .ok{animation:okPop .5s cubic-bezier(.2,.9,.3,1.4) both}
+@keyframes okPop{from{transform:scale(0)}}
+
+/* 12. cards fade in on scroll */
+.card.fx{opacity:0;transform:translateY(18px);transition:opacity .5s,transform .5s cubic-bezier(.2,.7,.2,1)}
+.card.fx.in{opacity:1;transform:none}
+
+/* 13. photo swap on hover (laptop only) */
+.card .ph .alt{position:absolute;inset:0;opacity:0;transition:opacity .35s}
+@media(hover:hover){.card:hover .ph .alt{opacity:1}}
+
+/* 14. image zoom */
+.gal .main{cursor:zoom-in}
+.zoom{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.92);display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.zoom.on{opacity:1;pointer-events:auto}
+.zoom img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .3s;cursor:zoom-in;transform:scale(.92)}
+.zoom.on img{transform:none}
+.zoom img.z{transform:scale(2.2);cursor:zoom-out}
+.zoom .x{position:absolute;top:calc(10px + env(safe-area-inset-top));right:12px;color:#fff;font-size:36px;z-index:1}
+.zoom .hint{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#aaa;font-size:13px}
+
+/* 15. announcement ticker */
+.announce.tick{overflow:hidden;white-space:nowrap;text-align:left;padding:7px 0}
+.announce .trk{display:inline-flex;animation:tick var(--dur,20s) linear infinite}
+.announce .trk span{padding-right:56px}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* 16. tracking timeline fill */
+.timeline div{z-index:1}
+.tl-bg,.tl-fill{position:absolute;top:7px;height:3px;left:12.5%;border-radius:2px}
+.tl-bg{right:12.5%;background:var(--line)}
+.tl-fill{background:var(--red);width:var(--w);animation:tlw var(--t) cubic-bezier(.4,0,.2,1) both}
+@keyframes tlw{from{width:0}}
+.timeline div.on::before{animation:dotOn .35s var(--d,0s) both}
+@keyframes dotOn{from{background:var(--line);transform:scale(.6)}}
+
+/* 17. whatsapp wiggle */
+.wa.wig{animation:wig .9s}
+@keyframes wig{0%,100%{transform:none}15%{transform:rotate(-14deg) scale(1.08)}30%{transform:rotate(12deg) scale(1.08)}45%{transform:rotate(-10deg)}60%{transform:rotate(8deg)}75%{transform:rotate(-4deg)}}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -286,6 +355,12 @@ footer img{height:44px;width:auto;margin-bottom:10px}
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <a class="ping" id="ping" href="#/" aria-live="polite"></a>
+<div class="sbar" id="sbar" aria-hidden="true"></div>
+<div class="zoom" id="zoom" role="dialog" aria-label="Photo zoom" aria-hidden="true">
+  <button class="x" id="zoomX" aria-label="Close">×</button>
+  <img id="zoomImg" alt="">
+  <div class="hint">Tap photo to zoom in or out</div>
+</div>
 
 <script>
 const SB="https://hmxfiyzinxihanckmuil.supabase.co";
@@ -323,7 +398,7 @@ async function load(){
 }
 function waLink(text){const n=(store.whatsapp||"").replace(/\D/g,"").replace(/^0/,"92");return n?`https://wa.me/${n}${text?"?text="+encodeURIComponent(text):""}`:""}
 function applyStore(){
-  $("#announce").textContent=store.announcement||"";
+  ticker();
   const w=waLink("Hi RSI Accessories, I have a question.");
   $("#waFloat").classList.toggle("on",!!w);$("#waFloat").href=w||"#";$("#fWa").href=w||"#/policy";
 }
@@ -337,7 +412,9 @@ function add(id,q=1,open=true,btn){
   if(p.stock<=0){toast("Sorry, this is out of stock");return}
   const c=cart.find(c=>c.id===id);
   if(c)c.qty=Math.min(10,c.qty+q);else cart.push({id,qty:Math.min(10,q)});
-  saveCart();bumpCart();okFlash(btn);
+  saveCart();okFlash(btn);
+  const src=btn&&(btn.closest(".card")?.querySelector(".ph img")||(btn.id==="addc"?$("#mainImg"):null));
+  if(open===true||!flyToCart(src))bumpCart();
   if(open===true)openCart();else if(open!=="silent")toast("Added to cart");
 }
 function setQty(id,q){const c=cart.find(c=>c.id===id);if(!c)return;c.qty=Math.max(0,Math.min(10,q));cart=cart.filter(c=>c.qty>0);saveCart()}
@@ -347,6 +424,7 @@ function totals(){
   const fee=sub===0?0:(free&&sub>=free?0:Number(store.delivery_fee||0));
   return{sub,fee,total:sub+fee,free};
 }
+let lastPct=0;
 function renderCart(){
   const b=$("#cartBody"),f=$("#cartFoot");
   if(!cart.length){b.innerHTML=`<div style="padding:40px 0;text-align:center" class="muted">Your cart is empty.</div>`;f.innerHTML=`<button class="btn full" onclick="closeCart();location.hash='#/'">Continue shopping</button>`;return}
@@ -358,11 +436,14 @@ function renderCart(){
       <button class="rm" onclick="setQty('${p.id}',0)">Remove</button></div></div>
     <div class="price" style="font-size:15px">${rs(p.price*c.qty)}</div></div>`}).join("");
   const t=totals();
-  const left=t.free&&t.sub<t.free?`<div class="muted" style="margin-bottom:8px">Add ${rs(t.free-t.sub)} more for free delivery</div>`:"";
+  const pct=t.free?Math.min(100,Math.round(t.sub/t.free*100)):0,full=pct>=100;
+  const left=t.free?`<div class="fmsg${full?" full":""}">${full?"🎉 You got FREE delivery!":`Add ${rs(t.free-t.sub)} more for FREE delivery`}</div>
+   <div class="fbar${full?" full":""}"><i id="fbi" style="width:${lastPct}%"></i></div>`:"";
   f.innerHTML=`${left}<div class="row"><span>Subtotal</span><b>${rs(t.sub)}</b></div>
    <div class="row muted"><span>Delivery</span><span>${t.fee?rs(t.fee):"Free"}</span></div>
    <div class="row big"><span>Total</span><span>${rs(t.total)}</span></div>
    <button class="btn red full" style="margin-top:12px" onclick="closeCart();location.hash='#/checkout'">Checkout</button>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const b=$("#fbi");if(b)b.style.width=pct+"%";lastPct=pct}));
 }
 function openCart(){renderCart();$("#drawer").classList.add("on");$("#scrim").classList.add("on");$("#drawer").setAttribute("aria-hidden","false");$("#closeCart").focus()}
 function closeCart(){$("#drawer").classList.remove("on");$("#scrim").classList.remove("on");$("#drawer").setAttribute("aria-hidden","true")}
@@ -441,14 +522,83 @@ function mountReviews(){
   if(reviews.length>1&&!RM)every(()=>show((i+1)%reviews.length,true),5000);
 }
 
+/* fly to cart */
+function flyToCart(src){
+  if(RM||!src||!src.getBoundingClientRect)return false;
+  const a=src.getBoundingClientRect(),b=$("#cartBtn").getBoundingClientRect();
+  if(a.width<2||a.bottom<0||a.top>innerHeight)return false;
+  const s=Math.min(a.width,a.height,140),f=document.createElement("img");
+  f.src=src.currentSrc||src.src;f.className="fly";f.alt="";
+  Object.assign(f.style,{left:(a.left+a.width/2-s/2)+"px",top:(a.top+a.height/2-s/2)+"px",width:s+"px",height:s+"px"});
+  document.body.appendChild(f);
+  const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transform=`translate(${dx}px,${dy}px) scale(${20/s})`;f.style.opacity=".4"}));
+  setTimeout(()=>{f.remove();bumpCart()},720);
+  return true;
+}
+
+/* cards fade in on scroll */
+let cardIO;
+function revealCards(){
+  if(RM||!("IntersectionObserver" in window))return;
+  cardIO&&cardIO.disconnect();
+  cardIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");cardIO.unobserve(e.target)}}),{rootMargin:"0px 0px -40px 0px"});
+  app.querySelectorAll(".card").forEach((c,i)=>{c.classList.add("fx");c.style.transitionDelay=(i%4)*70+"ms";cardIO.observe(c)});
+}
+
+/* sticky buy bar */
+let sbarIO;
+function stickyBar(p){
+  const bar=$("#sbar"),buy=$("#buy");if(!buy||p.stock<=0)return;
+  bar.innerHTML=`<img src="${esc(img(p))}" alt="" width="46" height="46"><div class="t"><b>${esc(p.name)}</b><span class="price" style="font-size:15px">${rs(p.price)}</span></div><button class="btn red" id="sbBuy">Buy now</button>`;
+  $("#sbBuy").onclick=()=>buy.click();
+  sbarIO=new IntersectionObserver(([e])=>{const on=!e.isIntersecting&&e.boundingClientRect.top<0;
+    bar.classList.toggle("on",on);bar.setAttribute("aria-hidden",String(!on));document.body.classList.toggle("sbar-on",on)});
+  sbarIO.observe(buy);
+}
+function hideBar(){sbarIO&&sbarIO.disconnect();sbarIO=null;$("#sbar").classList.remove("on");document.body.classList.remove("sbar-on")}
+
+/* confetti */
+let justOrdered=false;
+function confetti(){
+  if(RM)return;const cols=["#e11d2e","#14161a","#0f8a4b","#f5a400","#ffffff"];
+  for(let i=0;i<60;i++){const c=document.createElement("i");c.className="cf";
+    c.style.cssText=`left:${Math.random()*100}vw;background:${cols[i%5]};--x:${(Math.random()-.5)*160}px;--r:${(Math.random()*900-450)|0}deg;animation-duration:${1.8+Math.random()*1.6}s;animation-delay:${Math.random()*.4}s;${i%3?"":"border-radius:50%;height:8px"}`;
+    document.body.appendChild(c);setTimeout(()=>c.remove(),4200)}
+}
+
+/* image zoom */
+function openZoom(src){const z=$("#zoom"),im=$("#zoomImg");im.src=src;im.classList.remove("z");z.classList.add("on");z.setAttribute("aria-hidden","false");$("#zoomX").focus()}
+function closeZoom(){const z=$("#zoom");z.classList.remove("on");z.setAttribute("aria-hidden","true")}
+$("#zoomX").onclick=closeZoom;
+$("#zoom").onclick=e=>{if(e.target.id==="zoom")closeZoom()};
+$("#zoomImg").onclick=e=>{const im=e.currentTarget,r=im.getBoundingClientRect();
+  im.style.transformOrigin=`${((e.clientX-r.left)/r.width*100).toFixed(1)}% ${((e.clientY-r.top)/r.height*100).toFixed(1)}%`;im.classList.toggle("z")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeZoom()});
+
+/* announcement ticker */
+function ticker(){
+  const el=$("#announce"),txt=store.announcement||"";el.classList.remove("tick");el.textContent=txt;
+  if(!txt||RM)return;
+  el.style.whiteSpace="nowrap";
+  requestAnimationFrame(()=>{const fits=el.scrollWidth<=el.clientWidth+2;el.style.whiteSpace="";if(fits)return;
+    el.classList.add("tick");el.innerHTML=`<div class="trk" style="--dur:${Math.max(12,txt.length*.28)}s"><span>${esc(txt)}</span><span aria-hidden="true">${esc(txt)}</span></div>`});
+}
+let lastW=innerWidth;addEventListener("resize",()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(ticker._t);ticker._t=setTimeout(ticker,300)});
+
+/* whatsapp wiggle: once after 10 seconds */
+setTimeout(()=>{const w=$("#waFloat");if(!RM&&w.classList.contains("on"))w.classList.add("wig")},10000);
+
 /* views */
+const HOVER=matchMedia("(hover:hover)").matches;
 function card(p){
   const out=p.stock<=0;
   return`<a class="card" href="#/p/${esc(p.slug)}">
-   <div class="ph"><img src="${esc(img(p))}" alt="${esc(p.name)}" loading="lazy" width="400" height="400">
+   <div class="ph"><img src="${esc(img(p))}" alt="${esc(p.name)}" loading="lazy" width="400" height="400">${HOVER&&p.images&&p.images[1]?`<img class="alt" src="${esc(p.images[1])}" alt="" loading="lazy" width="400" height="400">`:""}
    ${out?`<span class="badge out">Sold out</span>`:p.badge?`<span class="badge">${esc(p.badge)}</span>`:""}</div>
    <div class="bd"><h3>${esc(p.name)}</h3>
    <div class="price">${rs(p.price)}${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
+   ${!out&&p.stock<=5?`<div class="low">Only ${p.stock} left</div>`:""}
    <button class="add" ${out?"disabled":""} onclick="event.preventDefault();add('${p.id}',1,false,this)">${out?"Sold out":"Add to cart"}</button></div></a>`;
 }
 const trust=`<div class="trust">
@@ -479,7 +629,7 @@ function home(){
       ${list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<div class="empty">No products here yet.</div>`}
     </div></section><div id="revSlot"></div>`;
   if(f&&play)roll($("#heroPrice"),was,f.price,700);
-  rotator();mountReviews();
+  rotator();mountReviews();revealCards();
 }
 function product(slug){
   const p=products.find(p=>p.slug===slug);
@@ -491,7 +641,7 @@ function product(slug){
    ${imgs.length>1?`<div class="thumbs">${imgs.map((u,i)=>`<button aria-label="Photo ${i+1}" aria-pressed="${i===0}" data-u="${esc(u)}"><img src="${esc(u)}" alt="" loading="lazy" width="72" height="72"></button>`).join("")}</div>`:""}</div>
    <div class="pinfo"><h1 class="pname">${esc(p.name)}</h1>
     <div class="price"><span class="roll" id="ppPrice">${rs(p.price)}</span>${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
-    <div class="stock ${out?"no":"ok"}">${out?"Sold out — WhatsApp us to pre-order":p.stock<=5?`Only ${p.stock} left in stock`:"In stock, ready to ship"}</div>
+    <div class="stock ${out?"no":p.stock<=5?"low":"ok"}">${out?"Sold out — WhatsApp us to pre-order":p.stock<=5?`Only ${p.stock} left in stock`:"In stock, ready to ship"}</div>
     ${out?"":`<div class="qty"><button aria-label="Less" id="qm">−</button><output id="qv">1</output><button aria-label="More" id="qp">+</button></div>`}
     <div class="btns"><button class="btn red full" id="buy" ${out?"disabled":""}>Buy now — Cash on Delivery</button>
      <button class="btn ghost full" id="addc" ${out?"disabled":""}>Add to cart</button></div>
@@ -506,6 +656,8 @@ function product(slug){
     $("#addc").onclick=()=>add(p.id,q,false,$("#addc"));
   }
   if(p.compare_price>p.price)roll($("#ppPrice"),p.compare_price,p.price,250);
+  $(".gal .main").onclick=()=>openZoom($("#mainImg").src);
+  stickyBar(p);
   window.scrollTo(0,0);
 }
 const PAYN={cod:"Cash on Delivery",jazzcash:"JazzCash",easypaisa:"Easypaisa",bank:"Bank transfer"};
@@ -558,7 +710,7 @@ function checkout(){
       ls.set("rsi_cust",d);
       const items=cart.map(c=>{const p=P(c.id);return`${c.qty} x ${p?p.name:""}`}).join(", ");
       ls.set("rsi_last",{no:r.order_no,total:r.total,pm,items,phone:d.phone});
-      cart=[];saveCart(false);location.hash="#/done/"+r.order_no;
+      cart=[];saveCart(false);justOrdered=true;location.hash="#/done/"+r.order_no;
     }catch(ex){err.textContent=ex.message;btn.disabled=false;btn.textContent=`Place order — ${rs(totals().total)}`}
   };
 }
@@ -572,6 +724,7 @@ function done(no){
    <div class="btns" style="justify-content:center;margin-top:18px">
     ${w?`<a class="btn red" href="${w}" target="_blank" rel="noopener">Confirm on WhatsApp</a>`:""}
     <a class="btn ghost" href="#/track">Track this order</a></div></div></div>`;
+  if(justOrdered){justOrdered=false;confetti()}
   window.scrollTo(0,0);
 }
 const STEPS=["pending","confirmed","shipped","delivered"];
@@ -594,7 +747,7 @@ function track(){
       if(!r)return $("#terr").textContent="No order found with that number and phone. Check both and try again.";
       const st=r.status==="packed"?"confirmed":r.status;const idx=STEPS.indexOf(st);
       $("#tres").innerHTML=`<h3 style="margin-top:22px">Order RSI-${r.order_no} — ${STN[r.status]}</h3>
-       ${idx>=0?`<div class="timeline">${STEPS.map((s,i)=>`<div class="${i<=idx?"on":""}">${STN[s]}</div>`).join("")}</div>`:""}
+       ${idx>=0?`<div class="timeline"><span class="tl-bg"></span><span class="tl-fill" style="--w:${idx/3*75}%;--t:${idx*.35}s"></span>${STEPS.map((s,i)=>`<div class="${i<=idx?"on":""}" style="--d:${i*.35}s">${STN[s]}</div>`).join("")}</div>`:""}
        ${r.tracking_no?`<p>Courier: <b>${esc(r.courier||"")}</b> — Tracking no: <b>${esc(r.tracking_no)}</b></p>`:""}
        <p class="muted">${(r.items||[]).map(i=>`${i.qty} × ${esc(i.name)}`).join("<br>")}<br>Total ${rs(r.total)} • Payment ${r.payment_status}</p>`;
     }catch(ex){$("#terr").textContent=ex.message}
@@ -607,7 +760,7 @@ function policy(){
   <p><b>Problems with your order?</b> Message us on WhatsApp with your order number and we'll sort it out.</p></div></div>`;
 }
 function route(){
-  clearTimers();
+  clearTimers();hideBar();closeZoom();
   const h=location.hash.slice(1)||"/";const [,a,b]=h.split("/");
   if(a==="p")product(decodeURIComponent(b||""));
   else if(a==="checkout")checkout();
