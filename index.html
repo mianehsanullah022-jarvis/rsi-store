@@ -192,6 +192,55 @@ footer img{height:44px;width:auto;margin-bottom:10px}
 .wa.on{display:grid}
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,120px);visibility:hidden;background:var(--ink);color:#fff;padding:12px 18px;border-radius:8px;font-weight:600;z-index:60;transition:transform .25s;max-width:calc(100% - 32px)}
 .toast.on{transform:translate(-50%,0);visibility:visible}
+/* 1. hero reveal (plays once per visit) */
+.hero.play .hero-img{animation:hImg .9s cubic-bezier(.2,.7,.2,1) both}
+.hero.play .hero-img img{animation:hZoom 1.4s cubic-bezier(.2,.7,.2,1) both}
+.hero.play .rv{animation:hUp .6s cubic-bezier(.2,.7,.2,1) both}
+.hero.play .rv:nth-child(1){animation-delay:.15s}.hero.play .rv:nth-child(2){animation-delay:.25s}
+.hero.play .rv:nth-child(3){animation-delay:.35s}.hero.play .rv:nth-child(4){animation-delay:.45s}
+.hero.play .rv:nth-child(5){animation-delay:.55s}
+@keyframes hImg{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes hZoom{from{transform:scale(1.12)}to{transform:none}}
+@keyframes hUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.hero-img{position:relative}
+.hero-img .badge{top:14px;left:14px}
+
+/* 2. word rotator */
+.rot{display:inline-block;color:var(--ink);border-bottom:2px solid var(--red)}
+.rot.sw{animation:rotIn .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes rotIn{from{opacity:0;transform:translateY(60%)}to{opacity:1;transform:none}}
+
+/* 3. price roll */
+.stripe s{position:relative;font:600 16px var(--body);color:#ffd2d6;margin-left:10px;vertical-align:middle}
+.roll{font-variant-numeric:tabular-nums}
+
+/* 4. click success */
+.add.ok,.btn.ok{background:var(--ok)!important;border-color:var(--ok)!important;color:#fff!important;animation:pop .35s}
+@keyframes pop{40%{transform:scale(1.06)}}
+.cartbtn .n.bump{animation:bump .45s}
+@keyframes bump{30%{transform:scale(1.5)}60%{transform:scale(.9)}}
+
+/* 5. sale pings */
+.ping{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:25;display:flex;gap:10px;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:8px 14px 8px 8px;box-shadow:0 8px 28px rgba(0,0,0,.14);max-width:min(340px,calc(100% - 100px));font-size:13.5px;line-height:1.35;transform:translateY(140%);opacity:0;transition:transform .4s cubic-bezier(.2,.7,.2,1),opacity .3s;text-decoration:none}
+.ping.on{transform:none;opacity:1}
+.ping img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex:none;background:var(--paper)}
+.ping b{display:block;font-size:14px}
+.ping small{color:var(--steel)}
+.ping .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:5px;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* 6. review shuffle */
+.revs{background:var(--white);border-top:1px solid var(--line);padding:36px 0 44px}
+.revs h2{font:800 italic 30px/1.1 var(--display);margin:0 0 18px}
+.rcard{background:var(--paper);border-radius:var(--r);padding:22px;max-width:640px;min-height:150px}
+.rcard.sw{animation:rSw .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes rSw{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.stars{color:#f5a400;font-size:18px;letter-spacing:2px}
+.rcard p{margin:10px 0 12px;font-size:17px}
+.rdots{display:flex;gap:6px;margin-top:14px}
+.rdots button{width:10px;height:10px;border-radius:5px;border:0;background:var(--line);padding:0;cursor:pointer;transition:width .25s}
+.rdots button[aria-current=true]{width:26px;background:var(--red)}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -236,6 +285,7 @@ footer img{height:44px;width:auto;margin-bottom:10px}
   <div class="dfoot" id="cartFoot"></div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<a class="ping" id="ping" href="#/" aria-live="polite"></a>
 
 <script>
 const SB="https://hmxfiyzinxihanckmuil.supabase.co";
@@ -262,11 +312,13 @@ async function load(){
       api("/rest/v1/products?select=id,slug,name,category,price,compare_price,stock,images,short,description,features,badge&active=eq.true&order=sort.asc"),
       api("/rest/v1/settings?select=key,value")
     ]);
+    const changed=!loaded||JSON.stringify(p)!==JSON.stringify(products)||JSON.stringify(s)!==JSON.stringify([{key:"store",value:store},{key:"payments",value:payments}]);
     products=p;ls.set("rsi_products",p);
     for(const x of s){if(x.key==="store")store=x.value;if(x.key==="payments")payments=x.value}
     ls.set("rsi_store",store);ls.set("rsi_pay",payments);
     loaded=true;cart=cart.filter(c=>products.some(p=>p.id===c.id));saveCart(false);
-    applyStore();route();
+    applyStore();if(changed)route();
+    loadReviews();loadSales();
   }catch(e){if(!loaded){app.innerHTML=`<div class="wrap sec"><div class="empty">Couldn't load products. Check your internet and refresh.</div></div>`}}
 }
 function waLink(text){const n=(store.whatsapp||"").replace(/\D/g,"").replace(/^0/,"92");return n?`https://wa.me/${n}${text?"?text="+encodeURIComponent(text):""}`:""}
@@ -280,12 +332,13 @@ const img=(p,i=0)=>(p.images&&p.images[i])||"img/logo.webp";
 
 /* cart */
 function saveCart(render=true){ls.set("rsi_cart",cart);$("#cartCount").textContent=cart.reduce((a,c)=>a+c.qty,0);if(render)renderCart()}
-function add(id,q=1,open=true){
+function add(id,q=1,open=true,btn){
   const p=P(id);if(!p)return;
   if(p.stock<=0){toast("Sorry, this is out of stock");return}
   const c=cart.find(c=>c.id===id);
   if(c)c.qty=Math.min(10,c.qty+q);else cart.push({id,qty:Math.min(10,q)});
-  saveCart();if(open===true)openCart();else if(open!=="silent")toast("Added to cart");
+  saveCart();bumpCart();okFlash(btn);
+  if(open===true)openCart();else if(open!=="silent")toast("Added to cart");
 }
 function setQty(id,q){const c=cart.find(c=>c.id===id);if(!c)return;c.qty=Math.max(0,Math.min(10,q));cart=cart.filter(c=>c.qty>0);saveCart()}
 function totals(){
@@ -317,6 +370,77 @@ $("#cartBtn").onclick=openCart;$("#closeCart").onclick=closeCart;$("#scrim").onc
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCart()});
 let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2200)}
 
+/* ===== animations ===== */
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let timers=[];const every=(f,ms)=>timers.push(setInterval(f,ms));
+function clearTimers(){timers.forEach(clearInterval);timers=[]}
+let heroPlayed=false;
+
+/* word rotator */
+const WORDS=["gifting","the gym","travel","everyday use"];
+function rotator(){const el=$("#rot");if(!el||RM)return;let i=0;
+  every(()=>{i=(i+1)%WORDS.length;el.classList.remove("sw");void el.offsetWidth;el.textContent=WORDS[i];el.classList.add("sw")},2400)}
+
+/* price roll: old price rolls down to new price */
+function roll(el,from,to,delay=0,ms=900){
+  if(!el)return;
+  if(RM||!from||from<=to){el.textContent=rs(to);return}
+  el.textContent=rs(from);
+  setTimeout(()=>{const t0=performance.now();
+    const step=now=>{const k=Math.min(1,(now-t0)/ms),e=1-Math.pow(1-k,3);
+      el.textContent=rs(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(step)};
+    requestAnimationFrame(step)},delay);
+}
+
+/* click success */
+function okFlash(btn,label="✓ Added"){
+  if(!btn)return;btn.dataset.l=btn.dataset.l||btn.textContent;
+  btn.classList.remove("ok");void btn.offsetWidth;btn.classList.add("ok");btn.textContent=label;
+  clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove("ok");btn.textContent=btn.dataset.l},1400);
+}
+function bumpCart(){const n=$("#cartCount");n.classList.remove("bump");void n.offsetWidth;n.classList.add("bump")}
+
+/* sale pings: real orders only (city + product, no names) */
+let sales=[],pingN=0;
+async function loadSales(){
+  try{sales=await api("/rest/v1/rpc/recent_sales",{method:"POST",body:"{}"})||[]}catch{sales=[]}
+  if(sales.length)setTimeout(nextPing,8000);
+}
+function ago(t){const m=Math.round((Date.now()-new Date(t))/60000);
+  if(m<2)return"just now";if(m<60)return m+" minutes ago";
+  const h=Math.round(m/60);if(h<24)return h+(h>1?" hours ago":" hour ago");
+  const d=Math.round(h/24);return d+(d>1?" days ago":" day ago")}
+function nextPing(){
+  if(pingN>=Math.min(6,sales.length))return;
+  const h=location.hash,el=$("#ping");
+  if(h.startsWith("#/checkout")||h.startsWith("#/done")||$("#drawer").classList.contains("on")){setTimeout(nextPing,15000);return}
+  const s=sales[pingN++],p=products.find(x=>x.name===s.product);
+  el.href=p?"#/p/"+encodeURIComponent(p.slug):"#/";
+  el.innerHTML=`<img src="${esc(s.image||(p?img(p):"img/logo.webp"))}" alt="" width="44" height="44"><span><b>Someone in ${esc(s.city)}</b>ordered ${esc(s.product)}<br><small><span class="dot"></span>${ago(s.created_at)}</small></span>`;
+  el.classList.add("on");setTimeout(()=>el.classList.remove("on"),5500);
+  setTimeout(nextPing,22000);
+}
+
+/* review shuffle: approved reviews only */
+let reviews=[];
+async function loadReviews(){
+  try{reviews=(await api("/rest/v1/reviews?select=name,city,rating,body,product_id&approved=eq.true&order=created_at.desc&limit=12"))||[]}catch{reviews=[]}
+  reviews.sort(()=>Math.random()-.5);mountReviews();
+}
+function mountReviews(){
+  const slot=$("#revSlot");if(!slot||!reviews.length)return;let i=0;
+  slot.innerHTML=`<section class="revs"><div class="wrap"><h2>What customers say</h2><div class="rcard" id="rc" aria-live="polite"></div>
+    ${reviews.length>1?`<div class="rdots">${reviews.map((_,k)=>`<button aria-label="Review ${k+1}" data-k="${k}"></button>`).join("")}</div>`:""}</div></section>`;
+  const show=(k,anim)=>{i=k;const r=reviews[k],p=r.product_id&&P(r.product_id),c=$("#rc");if(!c)return;
+    c.classList.remove("sw");if(anim){void c.offsetWidth;c.classList.add("sw")}
+    c.innerHTML=`<div class="stars" aria-label="${r.rating} out of 5 stars">${"★".repeat(r.rating)}${"☆".repeat(5-r.rating)}</div>
+      <p>“${esc(r.body)}”</p><b>${esc(r.name)}</b>${r.city?`<span class="muted"> · ${esc(r.city)}</span>`:""}${p?`<div class="muted">Bought: ${esc(p.name)}</div>`:""}`;
+    slot.querySelectorAll(".rdots button").forEach(b=>b.setAttribute("aria-current",String(+b.dataset.k===k)))};
+  show(0,false);
+  slot.querySelectorAll(".rdots button").forEach(b=>b.onclick=()=>show(+b.dataset.k,true));
+  if(reviews.length>1&&!RM)every(()=>show((i+1)%reviews.length,true),5000);
+}
+
 /* views */
 function card(p){
   const out=p.stock<=0;
@@ -325,7 +449,7 @@ function card(p){
    ${out?`<span class="badge out">Sold out</span>`:p.badge?`<span class="badge">${esc(p.badge)}</span>`:""}</div>
    <div class="bd"><h3>${esc(p.name)}</h3>
    <div class="price">${rs(p.price)}${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
-   <button class="add" ${out?"disabled":""} onclick="event.preventDefault();add('${p.id}',1,false)">${out?"Sold out":"Add to cart"}</button></div></a>`;
+   <button class="add" ${out?"disabled":""} onclick="event.preventDefault();add('${p.id}',1,false,this)">${out?"Sold out":"Add to cart"}</button></div></a>`;
 }
 const trust=`<div class="trust">
  <div><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg><span><b>Cash on Delivery</b><small>Pay when it reaches you</small></span></div>
@@ -338,19 +462,24 @@ function home(){
   const f=products[0];
   const cats=["All",...new Set(products.map(p=>p.category))];
   const list=products.filter(p=>cat==="All"||p.category===cat);
-  app.innerHTML=`${f?`<section class="hero"><div class="wrap hero-in">
-    <a class="hero-img" href="#/p/${esc(f.slug)}"><img src="${esc(img(f))}" alt="${esc(f.name)}" width="1000" height="750" fetchpriority="high"></a>
-    <div class="hero-txt">${f.badge?`<span class="tag">${esc(f.badge)}</span>`:""}
-      <h1 class="pname">${esc(f.name)}</h1><p>${esc(f.short||"")}</p>
-      <div class="stripe"><span>${rs(f.price)}</span></div>
-      <div class="btns"><button class="btn red" onclick="add('${f.id}');">Buy now</button><a class="btn ghost" href="#/p/${esc(f.slug)}">See details</a></div>
+  clearTimers();
+  const play=!heroPlayed&&!RM;heroPlayed=true;
+  const was=f&&f.compare_price>f.price?f.compare_price:0;
+  app.innerHTML=`${f?`<section class="hero${play?" play":""}"><div class="wrap hero-in">
+    <a class="hero-img" href="#/p/${esc(f.slug)}"><img src="${esc(img(f))}" alt="${esc(f.name)}" width="1000" height="750" fetchpriority="high">${f.badge?`<span class="badge">${esc(f.badge)}</span>`:""}</a>
+    <div class="hero-txt"><span class="tag rv">Perfect for <span class="rot" id="rot">${WORDS[0]}</span></span>
+      <h1 class="pname rv">${esc(f.name)}</h1><p class="rv">${esc(f.short||"")}</p>
+      <div class="stripe rv"><span class="roll" id="heroPrice">${rs(play&&was?was:f.price)}</span>${was?`<s>${rs(was)}</s>`:""}</div>
+      <div class="btns rv"><button class="btn red" onclick="add('${f.id}');">Buy now</button><a class="btn ghost" href="#/p/${esc(f.slug)}">See details</a></div>
     </div></div></section>`:""}
     ${trust}
     <section class="sec"><div class="wrap">
       <h2>Shop all</h2><p class="sub">${products.length} products • Cash on Delivery available</p>
       ${cats.length>2?`<div class="chips" role="group" aria-label="Categories">${cats.map(c=>`<button class="chip" aria-pressed="${c===cat}" onclick="cat='${esc(c)}';home()">${esc(c)}</button>`).join("")}</div>`:""}
       ${list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<div class="empty">No products here yet.</div>`}
-    </div></section>`;
+    </div></section><div id="revSlot"></div>`;
+  if(f&&play)roll($("#heroPrice"),was,f.price,700);
+  rotator();mountReviews();
 }
 function product(slug){
   const p=products.find(p=>p.slug===slug);
@@ -361,7 +490,7 @@ function product(slug){
    <div class="pp"><div class="gal"><div class="main"><img id="mainImg" src="${esc(imgs[0])}" alt="${esc(p.name)}" width="800" height="800"></div>
    ${imgs.length>1?`<div class="thumbs">${imgs.map((u,i)=>`<button aria-label="Photo ${i+1}" aria-pressed="${i===0}" data-u="${esc(u)}"><img src="${esc(u)}" alt="" loading="lazy" width="72" height="72"></button>`).join("")}</div>`:""}</div>
    <div class="pinfo"><h1 class="pname">${esc(p.name)}</h1>
-    <div class="price">${rs(p.price)}${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
+    <div class="price"><span class="roll" id="ppPrice">${rs(p.price)}</span>${p.compare_price>p.price?`<s>${rs(p.compare_price)}</s>`:""}</div>
     <div class="stock ${out?"no":"ok"}">${out?"Sold out — WhatsApp us to pre-order":p.stock<=5?`Only ${p.stock} left in stock`:"In stock, ready to ship"}</div>
     ${out?"":`<div class="qty"><button aria-label="Less" id="qm">−</button><output id="qv">1</output><button aria-label="More" id="qp">+</button></div>`}
     <div class="btns"><button class="btn red full" id="buy" ${out?"disabled":""}>Buy now — Cash on Delivery</button>
@@ -374,8 +503,9 @@ function product(slug){
     $("#qm").onclick=()=>{q=Math.max(1,q-1);$("#qv").textContent=q};
     $("#qp").onclick=()=>{q=Math.min(10,q+1);$("#qv").textContent=q};
     $("#buy").onclick=()=>{add(p.id,q,"silent");location.hash="#/checkout"};
-    $("#addc").onclick=()=>add(p.id,q);
+    $("#addc").onclick=()=>add(p.id,q,false,$("#addc"));
   }
+  if(p.compare_price>p.price)roll($("#ppPrice"),p.compare_price,p.price,250);
   window.scrollTo(0,0);
 }
 const PAYN={cod:"Cash on Delivery",jazzcash:"JazzCash",easypaisa:"Easypaisa",bank:"Bank transfer"};
@@ -477,6 +607,7 @@ function policy(){
   <p><b>Problems with your order?</b> Message us on WhatsApp with your order number and we'll sort it out.</p></div></div>`;
 }
 function route(){
+  clearTimers();
   const h=location.hash.slice(1)||"/";const [,a,b]=h.split("/");
   if(a==="p")product(decodeURIComponent(b||""));
   else if(a==="checkout")checkout();
