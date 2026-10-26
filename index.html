@@ -431,7 +431,7 @@ function add(id,q=1,open=true,btn){
 function setQty(id,q){const c=cart.find(c=>c.id===id);if(!c)return;c.qty=Math.max(0,Math.min(10,q));cart=cart.filter(c=>c.qty>0);saveCart()}
 function totals(){
   const sub=cart.reduce((a,c)=>{const p=P(c.id);return a+(p?p.price*c.qty:0)},0);
-  const free=Number(store.free_delivery_over||0);
+  const free=Number(store.delivery_fee||0)>0?Number(store.free_delivery_over||0):0; // no "free delivery" goal when delivery is already free
   const fee=sub===0?0:(free&&sub>=free?0:Number(store.delivery_fee||0));
   return{sub,fee,total:sub+fee,free};
 }
@@ -769,7 +769,7 @@ function track(){
 }
 function policy(){
   app.innerHTML=`<div class="wrap"><div class="done box" style="text-align:left"><h1>Delivery & returns</h1>
-  <p><b>Delivery:</b> We deliver all over Pakistan. ${store.delivery_fee?`Delivery charge is ${rs(store.delivery_fee)}`:"Delivery is free"}${store.free_delivery_over?`, and free on orders over ${rs(store.free_delivery_over)}`:""}.</p>
+  <p><b>Delivery:</b> We deliver all over Pakistan. ${store.delivery_fee?`Delivery charge is ${rs(store.delivery_fee)}`:"Delivery is free"}${store.delivery_fee&&store.free_delivery_over?`, and free on orders over ${rs(store.free_delivery_over)}`:""}.</p>
   <p><b>Payment:</b> Cash on Delivery, JazzCash, Easypaisa or bank transfer.</p>
   <p><b>Problems with your order?</b> Message us on WhatsApp with your order number and we'll sort it out.</p></div></div>`;
 }
